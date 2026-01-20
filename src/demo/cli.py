@@ -5,10 +5,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
+from collections import Counter
 from rich.console import Console
 
 from .config import ConfigError, load_config
-from .utils.json_utils import write_json
+from .io.load_raw import load_raw_dataset, extract_messages
+from .io.normalize import normalize_messages
+from .utils.json_utils import write_json, write_jsonl
 from .utils.paths import ensure_dir, get_run_dir
 from .utils.run_id import new_run_id
 from .utils.time import utc_now_iso
@@ -67,7 +70,66 @@ def cmd_run(args: argparse.Namespace) -> int:
     console.print(f"[bold]Input path:[/bold] {input_path}")
     console.print(f"[bold]Meta file:[/bold] {meta_path}")
 
-    return 0
+    # Stage 1 pipeline
+    try:
+        dataset = load_raw_dataset(input_path)
+        raw_messages = extract_messages(dataset)
+
+        normalize_cfg = cfg.get("normalize", {})
+        sort_by = bool(normalize_cfg.get("sort_by_timestamp", True))
+        keep_raw = bool(normalize_cfg.get("keep_raw", True))
+        allow_empty_text = bool(normalize_cfg.get("allow_empty_text", True))
+
+        normalized_messages, empty_text_count = normalize_messages(
+            raw_messages, sort_by_timestamp=sort_by, keep_raw=keep_raw
+        )
+        if not allow_empty_text and empty_text_count > 0:
+            raise ValueError(f"Found {empty_text_count} messages with empty text but allow_empty_text=false")
+
+        out_filename = cfg["io"]["output"]["normalized_messages"]
+        out_path = run_dir / out_filename
+        write_jsonl(out_path, (m.model_dump() for m in normalized_messages))
+
+        by_source_counts = Counter(m.source for m in normalized_messages)
+        thread_counts = Counter(m.thread_id for m in normalized_messages if m.thread_id)
+        top_threads = [
+            {"thread_id": thread_id, "message_count": count}
+            for thread_id, count in thread_counts.most_common(10)
+        ]
+
+        # Update meta to stage 1 and overwrite file
+        run_meta.update(
+            {
+                "stage": 1,
+                "counts": {
+                    "raw_messages": len(raw_messages),
+                    "normalized_messages": len(normalized_messages),
+                    "empty_text": empty_text_count,
+                },
+                "stats": {
+                    "by_source": dict(by_source_counts),
+                    "top_threads": top_threads,
+                },
+                "output_files": {
+                    **run_meta.get("output_files", {}),
+                    "normalized_messages": out_filename,
+                },
+                "notes": "Stage 1: loaded dataset, normalized messages, wrote JSONL.",
+            }
+        )
+        write_json(meta_path, run_meta)
+
+        console.print(f"[bold]Normalized messages:[/bold] {out_path}")
+        console.print(f"[bold]Raw messages:[/bold] {len(raw_messages)}")
+        console.print(f"[bold]Normalized:[/bold] {len(normalized_messages)}")
+        console.print(f"[bold]Empty text:[/bold] {empty_text_count}")
+        return 0
+    except SystemExit:
+        raise
+    except Exception as e:
+        console.print(f"[red]Stage 1 failed:[/red] {e}")
+        # Keep Stage 0 meta file as-is
+        return 1
 
 
 def cmd_eval(args: argparse.Namespace) -> int:

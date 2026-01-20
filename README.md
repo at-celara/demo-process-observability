@@ -4,8 +4,8 @@ A minimal demo repository that establishes a stable run contract and CLI scaffol
 
 ### What this provides
 
-- `python3 -m demo.cli run` creates `runs/<run_id>/` and writes `run_meta.json`
-- `python3 -m demo.cli eval` exists as a stub and prints helpful output
+- `uv run demo run` loads the dataset, normalizes messages, writes JSONL, and updates `run_meta.json`
+- `uv run demo eval` exists as a stub and prints helpful output
 - Config and env conventions are in place
 
 ### Requirements
@@ -42,7 +42,7 @@ uv run -m demo.cli --help
 
 Note: Run commands from the repository root.
 
-### Stage 0 usage
+### Stage 1 usage
 
 Show CLI help:
 
@@ -50,7 +50,7 @@ Show CLI help:
 uv run demo --help
 ```
 
-Create a run (will create a new run id and write a meta file):
+Create a run (loads dataset, normalizes messages, writes outputs):
 
 ```bash
 uv run demo run --input data/01_raw_messages.json
@@ -58,7 +58,8 @@ uv run demo run --input data/01_raw_messages.json
 
 This creates:
 
-- `runs/<run_id>/run_meta.json`
+- `runs/<run_id>/messages.normalized.jsonl`
+- `runs/<run_id>/run_meta.json` (with `stage: 1`, counts, and stats)
 
 Run the eval stub:
 
@@ -76,6 +77,12 @@ project:
 io:
   runs_dir: runs
   input_path: data/01_raw_messages.json
+  output:
+    normalized_messages: messages.normalized.jsonl
+normalize:
+  sort_by_timestamp: true
+  keep_raw: true
+  allow_empty_text: true
 run:
   write_run_meta: true
 eval:
@@ -83,7 +90,17 @@ eval:
   report_filename: eval_report.json
 ```
 
+### Definition of Done (Stage 1)
+
+```bash
+uv sync
+uv run demo run --input data/01_raw_messages.json
+```
+
+Confirm:
+- `runs/<run_id>/messages.normalized.jsonl` exists and has the same number of lines as raw messages
+- `runs/<run_id>/run_meta.json` has `stage: 1`, counts, `stats.by_source`, and `stats.top_threads`
+
 ### Roadmap
 
-- Stage 1 will produce `messages.normalized.jsonl`
 - Stage 3.5 will implement review/eval

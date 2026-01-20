@@ -4,9 +4,16 @@ project:
 io:
   runs_dir: runs
   input_path: data/01_raw_messages.json
+  output:
+    normalized_messages: messages.normalized.jsonl
 
 run:
   write_run_meta: true
+
+normalize:
+  sort_by_timestamp: true
+  keep_raw: true
+  allow_empty_text: true
 
 eval:
   # Stage 0: stub only. Stage 3.5 will implement.
