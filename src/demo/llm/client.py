@@ -46,25 +46,38 @@ class OpenAIClient:
 
     def chat(self, prompt_text: str, system_text: Optional[str] = None) -> str:
         """
-        Send a single-turn chat completion request and return raw text.
+        Send a single-turn request via Responses API and return raw text.
         """
-        messages = []
-        if system_text:
-            messages.append({"role": "system", "content": system_text})
-        messages.append({"role": "user", "content": prompt_text})
+        input_text = f"{system_text}\n\n{prompt_text}" if system_text else prompt_text
 
         attempt = 0
         last_exc: Optional[Exception] = None
         while attempt <= self.max_retries:
             try:
-                resp = self._client.chat.completions.create(
+                # Use the Responses API
+                resp = self._client.responses.create(
                     model=self.model,
-                    messages=messages,
+                    input=input_text,
                     temperature=self.temperature,
-                    max_tokens=self.max_output_tokens,
+                    max_output_tokens=self.max_output_tokens,
                     timeout=self.timeout_s,
                 )
-                text = (resp.choices[0].message.content or "").strip()
+                # Prefer convenience property when available
+                try:
+                    text = (resp.output_text or "").strip()
+                except Exception:
+                    # Fallback: extract concatenated text segments
+                    text_parts = []
+                    try:
+                        for part in getattr(resp, "output", []) or []:
+                            for content in getattr(part, "content", []) or []:
+                                if getattr(content, "type", "") in ("output_text", "text"):
+                                    txt = getattr(content, "text", None)
+                                    if isinstance(txt, str):
+                                        text_parts.append(txt)
+                    except Exception:
+                        pass
+                    text = "".join(text_parts).strip()
                 return text
             except Exception as e:
                 last_exc = e
