@@ -15,6 +15,27 @@ normalize:
   keep_raw: true
   allow_empty_text: true
 
+llm:
+  provider: openai
+  model: ${OPENAI_MODEL}
+  api_key_env: OPENAI_API_KEY
+  temperature: 0
+  max_output_tokens: 500
+  timeout_s: 60
+  max_retries: 3
+  retry_backoff_s: 2
+
+pass1:
+  enabled: true
+  output_events: events.pass1.jsonl
+  output_errors: events.pass1.errors.jsonl
+  prompt_path: src/demo/llm/prompts/pass1_event_extraction.md
+  concurrency: 8
+  min_confidence_to_keep: 0.0
+  cache:
+    enabled: true
+    dir: cache/pass1
+
 eval:
   # Stage 0: stub only. Stage 3.5 will implement.
   review_filename: review.json

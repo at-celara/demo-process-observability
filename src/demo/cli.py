@@ -6,16 +6,20 @@ from pathlib import Path
 from typing import Any, Dict
 
 from collections import Counter
+from dotenv import load_dotenv
 from rich.console import Console
 
 from .config import ConfigError, load_config
 from .io.load_raw import load_raw_dataset, extract_messages
 from .io.normalize import normalize_messages
-from .utils.json_utils import write_json, write_jsonl
+from .pipeline.pass1 import run_pass1
+from .schemas.messages import NormalizedMessage
+from .utils.json_utils import write_json, write_jsonl, read_jsonl
 from .utils.paths import ensure_dir, get_run_dir
 from .utils.run_id import new_run_id
 from .utils.time import utc_now_iso
 
+load_dotenv()  # automatically load variables from .env if present
 console = Console()
 
 
@@ -123,6 +127,43 @@ def cmd_run(args: argparse.Namespace) -> int:
         console.print(f"[bold]Raw messages:[/bold] {len(raw_messages)}")
         console.print(f"[bold]Normalized:[/bold] {len(normalized_messages)}")
         console.print(f"[bold]Empty text:[/bold] {empty_text_count}")
+        # Stage 2: Pass 1 LLM extraction (optional)
+        pass1_cfg = cfg.get("pass1", {})
+        if pass1_cfg.get("enabled", True):
+            try:
+                # Use in-memory normalized messages
+                console.print("[bold]Starting Stage 2 (pass1)...[/bold]")
+                pass1_result = run_pass1(normalized_messages, cfg, run_dir)
+                # Update meta to stage 2
+                run_meta.update(
+                    {
+                        "stage": 2,
+                        "counts": {
+                            **run_meta.get("counts", {}),
+                            "pass1_success": pass1_result.success,
+                            "pass1_errors": pass1_result.errors,
+                        },
+                        "stats": {
+                            **run_meta.get("stats", {}),
+                            "pass1_by_event_type": pass1_result.by_event_type,
+                        },
+                        "output_files": {
+                            **run_meta.get("output_files", {}),
+                            "events_pass1": pass1_cfg.get("output_events", "events.pass1.jsonl"),
+                            "events_pass1_errors": pass1_cfg.get("output_errors", "events.pass1.errors.jsonl"),
+                        },
+                        "notes": "Stage 2: pass1 LLM extraction completed.",
+                    }
+                )
+                write_json(meta_path, run_meta)
+                console.print(
+                    f"[bold]Pass1:[/bold] success={pass1_result.success} errors={pass1_result.errors}"
+                )
+            except Exception as e:
+                console.print(f"[red]Stage 2 failed:[/red] {e}")
+                # Keep meta at stage 1 if Stage 2 fails
+                return 1
+
         return 0
     except SystemExit:
         raise
@@ -163,7 +204,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     # run
-    p_run = sub.add_parser("run", help="Create run folder and write run_meta.json")
+    p_run = sub.add_parser("run", help="Create run folder and execute Stage 1 + Stage 2")
     p_run.add_argument("--config", type=str, default="config.yml", help="Path to config.yml")
     p_run.add_argument("--input", type=str, help="Override input path")
     p_run.add_argument("--run-id", type=str, help="Provide a specific run id")
@@ -174,6 +215,76 @@ def build_parser() -> argparse.ArgumentParser:
     p_eval.add_argument("--config", type=str, default="config.yml", help="Path to config.yml")
     p_eval.add_argument("--run-id", type=str, required=True, help="Run ID to evaluate")
     p_eval.set_defaults(func=cmd_eval)
+
+    # pass1 (rerun Stage 2 only)
+    def cmd_pass1(args: argparse.Namespace) -> int:
+        config_path = Path(args.config or "config.yml")
+        cfg = _load_config_or_exit(config_path)
+        runs_dir = Path(cfg["io"]["runs_dir"])
+        run_dir = get_run_dir(runs_dir, args.run_id)
+
+        meta_path = run_dir / "run_meta.json"
+        if not meta_path.exists():
+            console.print(f"[red]Missing run_meta.json at:[/red] {meta_path}")
+            return 2
+
+        # Load normalized messages JSONL
+        norm_name = cfg["io"]["output"]["normalized_messages"]
+        norm_path = run_dir / norm_name
+        if not norm_path.exists():
+            console.print(f"[red]Missing normalized messages at:[/red] {norm_path}")
+            return 2
+        try:
+            messages = [
+                NormalizedMessage.model_validate(obj) for obj in read_jsonl(norm_path)
+            ]
+        except Exception as e:
+            console.print(f"[red]Failed to read normalized messages:[/red] {e}")
+            return 1
+
+        try:
+            result = run_pass1(messages, cfg, run_dir)
+            # Update run_meta
+            try:
+                from json import load
+                with meta_path.open("r", encoding="utf-8") as f:
+                    run_meta = load(f)
+            except Exception:
+                run_meta = {}
+            pass1_cfg = cfg.get("pass1", {})
+            run_meta.update(
+                {
+                    "stage": 2,
+                    "counts": {
+                        **run_meta.get("counts", {}),
+                        "pass1_success": result.success,
+                        "pass1_errors": result.errors,
+                    },
+                    "stats": {
+                        **run_meta.get("stats", {}),
+                        "pass1_by_event_type": result.by_event_type,
+                    },
+                    "output_files": {
+                        **run_meta.get("output_files", {}),
+                        "events_pass1": pass1_cfg.get("output_events", "events.pass1.jsonl"),
+                        "events_pass1_errors": pass1_cfg.get("output_errors", "events.pass1.errors.jsonl"),
+                    },
+                    "notes": "Stage 2: pass1 LLM extraction completed.",
+                }
+            )
+            write_json(meta_path, run_meta)
+            console.print(f"[bold]Pass1:[/bold] success={result.success} errors={result.errors}")
+            return 0
+        except SystemExit:
+            raise
+        except Exception as e:
+            console.print(f"[red]Pass1 failed:[/red] {e}")
+            return 1
+
+    p_pass1 = sub.add_parser("pass1", help="Run Stage 2 (pass1) for an existing run")
+    p_pass1.add_argument("--config", type=str, default="config.yml", help="Path to config.yml")
+    p_pass1.add_argument("--run-id", type=str, required=True, help="Run ID to process")
+    p_pass1.set_defaults(func=cmd_pass1)
 
     return parser
 

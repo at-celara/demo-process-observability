@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Iterator
 
 
 def write_json(path: Path, obj: Dict[str, Any]) -> None:
@@ -39,3 +39,16 @@ def write_jsonl(path: Path, items: Iterable[Dict[str, Any]]) -> None:
         tmp_path = Path(tmp.name)
 
     os.replace(tmp_path, path)
+
+
+def read_jsonl(path: Path) -> Iterator[Dict[str, Any]]:
+    """
+    Stream JSON objects from a JSON Lines file.
+    """
+    path = Path(path)
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            yield json.loads(line)

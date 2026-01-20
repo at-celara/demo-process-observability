@@ -1,3 +1,9 @@
+# Cache and environment
+cache/
+.env
+**/__pycache__/
+*.pyc
+
 # Project runs and local env
 runs/
 .env

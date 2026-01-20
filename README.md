@@ -4,7 +4,7 @@ A minimal demo repository that establishes a stable run contract and CLI scaffol
 
 ### What this provides
 
-- `uv run demo run` loads the dataset, normalizes messages, writes JSONL, and updates `run_meta.json`
+- `uv run demo run` loads the dataset, normalizes messages (Stage 1), runs pass1 LLM extraction (Stage 2), writes outputs, and updates `run_meta.json`
 - `uv run demo eval` exists as a stub and prints helpful output
 - Config and env conventions are in place
 
@@ -42,7 +42,7 @@ uv run -m demo.cli --help
 
 Note: Run commands from the repository root.
 
-### Stage 1 usage
+### Stage 1 + 2 usage
 
 Show CLI help:
 
@@ -50,7 +50,7 @@ Show CLI help:
 uv run demo --help
 ```
 
-Create a run (loads dataset, normalizes messages, writes outputs):
+Create a run (loads dataset, normalizes messages, runs LLM extraction, writes outputs):
 
 ```bash
 uv run demo run --input data/01_raw_messages.json
@@ -59,12 +59,20 @@ uv run demo run --input data/01_raw_messages.json
 This creates:
 
 - `runs/<run_id>/messages.normalized.jsonl`
-- `runs/<run_id>/run_meta.json` (with `stage: 1`, counts, and stats)
+- `runs/<run_id>/events.pass1.jsonl`
+- `runs/<run_id>/events.pass1.errors.jsonl`
+- `runs/<run_id>/run_meta.json` (with `stage: 2`, counts, and stats)
 
 Run the eval stub:
 
 ```bash
 uv run demo eval --run-id <run_id>
+```
+
+Rerun Stage 2 only (helpful when iterating on prompts/types) for an existing run:
+
+```bash
+uv run demo pass1 --run-id <run_id>
 ```
 
 ### Config
@@ -83,11 +91,46 @@ normalize:
   sort_by_timestamp: true
   keep_raw: true
   allow_empty_text: true
+llm:
+  provider: openai
+  model: ${OPENAI_MODEL}
+  api_key_env: OPENAI_API_KEY
+  temperature: 0
+  max_output_tokens: 500
+  timeout_s: 60
+  max_retries: 3
+  retry_backoff_s: 2
+pass1:
+  enabled: true
+  output_events: events.pass1.jsonl
+  output_errors: events.pass1.errors.jsonl
+  prompt_path: src/demo/llm/prompts/pass1_event_extraction.md
+  concurrency: 8
+  min_confidence_to_keep: 0.0
+  cache:
+    enabled: true
+    dir: cache/pass1
 run:
   write_run_meta: true
 eval:
   review_filename: review.json
   report_filename: eval_report.json
+```
+
+### Environment variables
+
+`.env` is auto-loaded when you run the CLI. You can either export vars or create `.env`:
+
+```bash
+# Option A: .env file (preferred)
+cp -n .env.example .env
+# then edit .env and set:
+# OPENAI_API_KEY=sk-...
+# OPENAI_MODEL=gpt-5.1
+
+# Option B: export in shell
+export OPENAI_API_KEY=sk-...
+export OPENAI_MODEL=gpt-5.1
 ```
 
 ### Definition of Done (Stage 1)
@@ -100,6 +143,18 @@ uv run demo run --input data/01_raw_messages.json
 Confirm:
 - `runs/<run_id>/messages.normalized.jsonl` exists and has the same number of lines as raw messages
 - `runs/<run_id>/run_meta.json` has `stage: 1`, counts, `stats.by_source`, and `stats.top_threads`
+
+### Definition of Done (Stage 2)
+
+From a clean repo with OpenAI env vars set:
+```bash
+uv sync
+uv run demo run --input data/01_raw_messages.json
+```
+Confirm:
+- `runs/<run_id>/events.pass1.jsonl` exists
+- `runs/<run_id>/events.pass1.errors.jsonl` exists (may be empty)
+- `runs/<run_id>/run_meta.json` has `stage: 2`, `counts.pass1_success`, `counts.pass1_errors`, and `stats.pass1_by_event_type`
 
 ### Roadmap
 
