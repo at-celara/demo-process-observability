@@ -214,7 +214,7 @@ Run it:
 
 ```bash
 uv sync
-streamlit run src/demo/dashboard/app.py -- --runs-dir runs --run-id latest
+uv run streamlit run src/demo/dashboard/app.py -- --runs-dir runs --run-id latest
 ```
 
 Usage:
