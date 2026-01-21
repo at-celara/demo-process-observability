@@ -37,16 +37,6 @@ Install dependencies and the project (editable):
 uv sync
 ```
 
-Quickstart sanity check:
-
-```bash
-# Run console script via uv
-uv run demo --help
-
-# Or module form
-uv run -m demo.cli --help
-```
-
 Note: Run commands from the repository root.
 
 ### Ingestion (Stage 0)
@@ -101,12 +91,6 @@ uv run demo run --ingest-config config/ingestion.yml --ingest-out data
 
 ### Pipeline usage (Stages 1–3)
 
-Show CLI help:
-
-```bash
-uv run demo --help
-```
-
 Create a run (loads dataset, normalizes messages, runs LLM extraction, writes outputs):
 
 ```bash
@@ -129,12 +113,6 @@ This creates (per run):
 - `runs/<run_id>/review_template.json`
 - `runs/<run_id>/eval_report.json`
 - `runs/<run_id>/run_meta.json` (with `stage: 3`, counts, and stats)
-
-Run the eval stub:
-
-```bash
-uv run demo eval --run-id <run_id>
-```
 
 Rerun Stage 2 only (helpful when iterating on prompts/types) for an existing run:
 
@@ -233,41 +211,6 @@ cp -n .env.example .env
 export OPENAI_API_KEY=sk-...
 export OPENAI_MODEL=gpt-5.1
 ```
-
-### Definition of Done (Stage 1)
-
-```bash
-uv sync
-uv run demo run --input data/01_raw_messages.json
-```
-
-Confirm:
-- `runs/<run_id>/messages.normalized.jsonl` exists and has the same number of lines as raw messages
-- `runs/<run_id>/run_meta.json` has `stage: 1`, counts, `stats.by_source`, and `stats.top_threads`
-
-### Definition of Done (Stage 2)
-
-From a clean repo with OpenAI env vars set:
-```bash
-uv sync
-uv run demo run --input data/01_raw_messages.json
-```
-Confirm:
-- `runs/<run_id>/events.pass1.jsonl` exists
-- `runs/<run_id>/events.pass1.errors.jsonl` exists (may be empty)
-- `runs/<run_id>/run_meta.json` has `stage: 2`, `counts.pass1_success`, `counts.pass1_errors`, and `stats.pass1_by_event_type`
-
-### Definition of Done (Stage 3)
-
-After Stage 2:
-```bash
-uv run demo run --input data/01_raw_messages.json
-# or rerun only Stage 3 for an existing run:
-uv run demo stage3 --run-id <run_id>
-```
-Confirm:
-- `runs/<run_id>/instances.json`, `timeline.json`, `review_template.json`, `eval_report.json` exist
-- `runs/<run_id>/run_meta.json` has `stage: 3`, `counts.instances`, `stats.instances_by_status`, and `stats.mean_instance_confidence`
 
 ### Dashboard (Stage 4)
 
