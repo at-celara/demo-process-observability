@@ -14,6 +14,8 @@ from .io.load_raw import load_raw_dataset, extract_messages
 from .io.normalize import normalize_messages
 from .pipeline.pass1 import run_pass1
 from .pipeline.pass2 import run_stage3
+from .ingestion.run import run_ingestion
+from .ingestion.config import load_config as load_ingest_config
 from .schemas.messages import NormalizedMessage
 from .utils.json_utils import write_json, write_jsonl, read_jsonl
 from .utils.paths import ensure_dir, get_run_dir
@@ -45,8 +47,15 @@ def cmd_run(args: argparse.Namespace) -> int:
     # Determine run_id
     run_id = args.run_id or new_run_id()
 
-    # Determine input path
-    input_path = Path(args.input) if args.input else Path(cfg["io"]["input_path"])
+    # Determine input path – optionally run ingestion first if ingest_config provided
+    input_path: Path
+    if getattr(args, "ingest_config", None):
+        ingest_out_dir = Path(args.ingest_out or "data")
+        console.print(f"[bold]Starting ingestion...[/bold] config={args.ingest_config} out_dir={ingest_out_dir}")
+        raw_path = run_ingestion(Path(args.ingest_config), ingest_out_dir)
+        input_path = raw_path
+    else:
+        input_path = Path(args.input) if args.input else Path(cfg["io"]["input_path"])
 
     runs_dir = Path(cfg["io"]["runs_dir"])
     run_dir = get_run_dir(runs_dir, run_id)
@@ -240,7 +249,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="demo",
-        description="Demo process observability CLI (Stage 0).",
+        description="Demo process observability CLI",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -248,8 +257,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="Create run folder and execute Stage 1 + Stage 2")
     p_run.add_argument("--config", type=str, default="config.yml", help="Path to config.yml")
     p_run.add_argument("--input", type=str, help="Override input path")
+    p_run.add_argument("--ingest-config", type=str, help="Path to ingestion config (to run Stage 0 ingestion first)")
+    p_run.add_argument("--ingest-out", type=str, help="Output directory for ingestion (default: data/)")
     p_run.add_argument("--run-id", type=str, help="Provide a specific run id")
     p_run.set_defaults(func=cmd_run)
+
+    # ingest
+    def cmd_ingest(args: argparse.Namespace) -> int:
+        try:
+            out_dir = Path(args.out or "data")
+            run_ingestion(Path(args.config), out_dir)
+            console.print(f"[bold green]Ingestion outputs written to:[/bold green] {out_dir}")
+            return 0
+        except SystemExit:
+            raise
+        except Exception as e:
+            console.print(f"[red]Ingestion failed:[/red] {e}")
+            return 1
+
+    p_ingest = sub.add_parser("ingest", help="Run Stage 0 ingestion (Gmail + Slack) to produce raw_messages.jsonl")
+    p_ingest.add_argument("--config", type=str, required=True, help="Path to ingestion.yml")
+    p_ingest.add_argument("--out", type=str, default="data", help="Output directory (default: data/)")
+    p_ingest.set_defaults(func=cmd_ingest)
 
     # eval (stub)
     p_eval = sub.add_parser("eval", help="Eval stub (Stage 3.5 will implement)")

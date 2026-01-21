@@ -33,3 +33,7 @@ dist/
 build/
 
 stage*.md
+
+# Secrets (do not commit)
+secrets/
+!secrets/.gitkeep

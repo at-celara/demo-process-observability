@@ -1,0 +1,35 @@
+dataset:
+  dataset_id: demo_12w_2owners_example
+  window:
+    mode: relative    # relative|absolute
+    weeks: 12
+    end_date: null
+
+credentials:
+  file: secrets/credentials.json
+
+gmail:
+  enabled: true
+  owner_mailboxes:
+    - hr_owner@company.com
+    - pm_owner@company.com
+  query:
+    extra: ""         # optional extra Gmail search terms
+  max_per_mailbox: null
+  page_size: 200
+
+slack:
+  enabled: true
+  include_channels: null   # null => all channels bot is member of
+  exclude_channels:
+    - random
+    - social
+  include_archived: false
+  page_size: 200
+  max_per_channel: null
+
+filters:
+  min_text_len: 20
+  drop_if_sender_contains:
+    - no-reply
+    - noreply

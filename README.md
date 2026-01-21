@@ -1,6 +1,7 @@
 ## Demo: Process Observability
 
 An end-to-end demo that establishes a stable run contract and CLI, runs the full pipeline with LLMs, and ships a Streamlit dashboard:
+- Stage 0: ingestion (Gmail + Slack, 12-week window)
 - Stage 1: normalize messages
 - Stage 2: pass1 LLM event extraction
 - Stage 3: clustering + state inference
@@ -8,6 +9,7 @@ An end-to-end demo that establishes a stable run contract and CLI, runs the full
 
 ### What this provides
 
+- `uv run demo ingest --config config/ingestion.yml --out data` creates a dataset from Gmail/Slack (Stage 0)
 - `uv run demo run` loads the dataset, normalizes messages (Stage 1), runs pass1 LLM extraction (Stage 2), writes outputs, and updates `run_meta.json`
 - `uv run demo eval` is a stub (placeholder) and prints helpful output
 - Config and env conventions are in place
@@ -47,6 +49,56 @@ uv run -m demo.cli --help
 
 Note: Run commands from the repository root.
 
+### Ingestion (Stage 0)
+
+Build a dataset from Gmail + Slack using a 12-week window.
+
+Run:
+
+```bash
+uv sync
+uv run demo ingest --config config/ingestion.yml --out data
+```
+
+Outputs (in `--out`, default `data/`):
+- `raw_messages.jsonl` (JSON Lines)
+- `ingestion_manifest.json`
+- `ingestion_stats.json`
+
+Minimal `config/ingestion.yml` example:
+
+```yaml
+dataset:
+  dataset_id: demo_12w_2owners_v1
+  window:
+    mode: relative   # relative|absolute
+    weeks: 12
+credentials:
+  file: secrets/credentials.json
+gmail:
+  enabled: true
+  owner_mailboxes: ["hr_owner@company.com", "pm_owner@company.com"]
+  query: { extra: "" }
+  page_size: 200
+slack:
+  enabled: true
+  include_channels: null
+  exclude_channels: ["random", "social"]
+  include_archived: false
+  page_size: 200
+filters:
+  min_text_len: 20
+  drop_if_sender_contains: ["no-reply", "noreply"]
+```
+
+Credentials (`secrets/credentials.json`) must include a Google service account (domain-wide delegation) and `slack_bot_token`.
+
+Tip: You can run the full pipeline with ingestion first:
+
+```bash
+uv run demo run --ingest-config config/ingestion.yml --ingest-out data
+```
+
 ### Pipeline usage (Stages 1–3)
 
 Show CLI help:
@@ -59,6 +111,12 @@ Create a run (loads dataset, normalizes messages, runs LLM extraction, writes ou
 
 ```bash
 uv run demo run --input data/01_raw_messages.json
+```
+
+Or, after an ingestion run:
+
+```bash
+uv run demo run --input data/raw_messages.jsonl
 ```
 
 This creates (per run):
