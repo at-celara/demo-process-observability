@@ -233,3 +233,35 @@ Usage:
 Expected run artifacts per run directory:
 - `instances.json`, `timeline.json`, `run_meta.json` (required)
 - `messages.normalized.jsonl`, `review.json`, `review_template.json`, `eval_report.json` (optional)
+
+### Merge per-client datasets (one-off tool)
+
+If you have multiple per-client raw JSON files (with overlapping messages) and want a single merged dataset for this demo:
+
+```bash
+# Using explicit inputs
+uv run python scripts/merge_client_datasets.py \
+  --inputs data/test/01_raw_messages_altum.json data/test/01_raw_messages_public_relay.json \
+  --output data/test/01_raw_messages_2025_merged.json \
+  --dataset-id prod_repo_2025_client_loop
+
+# Or via glob
+uv run python scripts/merge_client_datasets.py \
+  --inputs-glob "data/test/01_raw_messages_*.json" \
+  --output data/test/01_raw_messages_2025_merged.json \
+  --dataset-id prod_repo_2025_client_loop
+```
+
+What it does:
+- Loads multiple inputs (top-level `messages` array or object with `messages`)
+- Deduplicates by `id` (fallback key if `id` missing)
+- Adds provenance on each message under `ingestion`:
+  - `matched_clients` (derived from filenames)
+  - `files_seen_in`
+- Outputs `{ "meta": {...}, "messages": [...] }`
+
+Feed the merged file directly into the pipeline:
+
+```bash
+uv run demo run --input data/test/01_raw_messages_2025_merged.json
+```
