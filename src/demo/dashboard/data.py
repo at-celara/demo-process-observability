@@ -12,6 +12,7 @@ except Exception:  # streamlit not available in some contexts (tests)
     st = None  # type: ignore
 
 from ..utils.json_utils import read_jsonl
+from ..catalog.loaders import load_process_catalog as _load_process_catalog_file
 
 
 def _cache_data(func):
@@ -181,3 +182,27 @@ def index_messages(normalized_jsonl_path: Path) -> Dict[str, Dict[str, Any]]:
             "raw": obj,
         }
     return index
+
+
+# Catalog helpers (Phase C)
+@_cache_data
+def load_process_catalog(path: Path):
+    try:
+        return _load_process_catalog_file(Path(path))
+    except Exception:
+        return None
+
+
+def available_processes(instances: Dict[str, Any] | List[Dict[str, Any]], process_catalog) -> List[str]:
+    """
+    Derive available canonical processes from instances, intersected with catalog if provided.
+    """
+    if isinstance(instances, dict):
+        items = instances.get("instances") or []
+    else:
+        items = instances or []
+    present = {i.get("canonical_process") for i in items if i.get("canonical_process")}
+    if process_catalog:
+        catalog_keys = set(process_catalog.processes.keys())
+        return sorted(list(present & catalog_keys))
+    return sorted(list(present))

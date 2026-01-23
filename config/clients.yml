@@ -6,13 +6,13 @@ clients:
   - name: "Ideal Prediction"
     aliases: ["Ideal Prediction", "Ideal", "IdealPrediction"]
 - name: "Chromatics"
-    aliases: ["Chromatics", "chromatics ai", "Chromatics AI"]
+    aliases: ["Chromatics", "chromatics", "Chromatics.ai", "chromatics.ai", "chromatics ai", "Chromatics AI"]
 - name: "AFAB"
     aliases: ["AFAB", "afab"]
 - name: "CARPEDM"
-    aliases: ["CARPEDM", "carpedm"]
+    aliases: ["CARPEDM", "carpedm", "CarpeDiem"]
 - name: "Portillos"
-    aliases: ["Portillo's", "portillos"]
+    aliases: ["Portillos", "Portillo's", "portillos"]
 - name: "Newton"
     aliases: ["Newton Labs", "newton", "newtons"]
 - name: "QU"
@@ -28,6 +28,6 @@ clients:
 - name: "Podifi"
     aliases: ["Podifi", "podifi"]
 - name: "Celara Labs"
-    aliases: ["Celara Labs", "celara labs", "celara", "Celara"]
+    aliases: ["Celara Labs", "celara labs", "celara", "Celara", "CELARA", "Tryni", "Tryni 2.0"]
 - name: "Public Relay"
   aliases: ["Public Relay", "PublicRelay", "public relay"]

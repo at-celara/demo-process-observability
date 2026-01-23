@@ -12,13 +12,6 @@ processes:
     health:
       at_risk_after_days: 7
       overdue_after_days: 14
-  
-  deployment:
-    display_name: "Deployment"
-    owner: "Eng"
-    steps: ["plan", "deploy", "validate", "handoff"]
-    process_aliases: ["deployment", "release"]
-    health: { at_risk_after_days: 7, overdue_after_days: 14 }
 
   delivery:
     display_name: "Project Delivery"
@@ -35,4 +28,58 @@ processes:
         - "release"
         - "approval to deploy"
         - "awaiting approval"
+    health: { at_risk_after_days: 14, overdue_after_days: 30 }
+
+  sales_pipeline:
+    display_name: "Sales Pipeline"
+    owner: "Sales"
+    steps: ["prospecting", "qualification", "proposal", "poc", "contract", "handoff"]
+    process_aliases:
+      - "Sales"
+      - "Business Development"
+      - "Email Outreach"
+      - "Outreach"
+      - "Proposal Development"
+      - "Poc"
+      - "Contracting"
+      - "Relationship Management"
+      - "Client Engagement"
+      - "Vendor Engagement"
+      - "Account Status Reporting"
+    health: { at_risk_after_days: 7, overdue_after_days: 14 }
+
+  resourcing_staffing:
+    display_name: "Resourcing"
+    owner: "Ops"
+    steps: ["request", "search", "confirm", "staffed", "done"]
+    process_aliases:
+      - "Resource Planning"
+      - "Resource Allocation"
+      - "Resourcing"
+      - "Staffing"
+    health: { at_risk_after_days: 3, overdue_after_days: 7 }
+
+  data_ops:
+    display_name: "Data Ops"
+    owner: "Eng"
+    steps: ["intake", "retrieve", "classify", "pipeline", "complete"]
+    process_aliases:
+      - "Data Retrieval And Classification"
+      - "Data Pipeline"
+    health: { at_risk_after_days: 7, overdue_after_days: 14 }
+
+  documentation:
+    display_name: "Documentation"
+    owner: "PM"
+    steps: ["draft", "review", "publish", "complete"]
+    process_aliases: ["Documentation"]
+    health: { at_risk_after_days: 14, overdue_after_days: 30 }
+
+  marketing:
+    display_name: "Marketing"
+    owner: "Marketing"
+    steps: ["plan", "produce", "publish", "measure"]
+    process_aliases:
+      - "Marketing"
+      - "Case Studies"
     health: { at_risk_after_days: 14, overdue_after_days: 30 }

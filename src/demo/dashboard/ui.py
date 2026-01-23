@@ -145,3 +145,47 @@ def render_evidence_timeline(
                 )
                 if msg.get("recipients"):
                     st.caption(f"recipients={', '.join(msg['recipients'])}")
+
+
+# Phase C helpers
+def format_instance_name(instance: Dict[str, Any]) -> str:
+    """
+    Build a compact name for display. Include role only when the canonical process
+    is 'hiring' and the role is known; otherwise show just the client.
+    """
+    canon_proc = (instance.get("canonical_process") or "").lower() if isinstance(instance.get("canonical_process"), str) else ""
+    client = (instance.get("canonical_client") or instance.get("candidate_client") or "").trim() if False else None
+    client = (instance.get("canonical_client") or instance.get("candidate_client") or "").strip()
+    role = (instance.get("canonical_role") or "").strip()  # prefer canonical role; may be empty/unknown
+    if canon_proc == "hiring" and role and role.lower() != "unknown":
+        base = f"{role} – {client}".strip(" –")
+    else:
+        base = client or "—"
+    proc = (instance.get("canonical_process") or instance.get("candidate_process") or "").strip()
+    return f"{base} ({proc})" if proc else base
+
+
+def format_progress(instance: Dict[str, Any]) -> str:
+    td = instance.get("steps_total")
+    dd = instance.get("steps_done")
+    if td is None or dd is None:
+        return ""
+    return f"{dd}/{td}"
+
+
+def step_state_to_symbol(state: Optional[str]) -> str:
+    mapping = {
+        "completed": "✅",
+        "in_progress": "⏸️",
+        "blocked": "⚠️",
+        "not_started": "·",
+        "unknown": "?",
+        None: "?",
+    }
+    return mapping.get(state, "?")
+
+
+def render_health_badge(health: Optional[str]) -> str:
+    if not health:
+        return "unknown"
+    return health

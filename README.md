@@ -223,8 +223,9 @@ uv run streamlit run src/demo/dashboard/app.py -- --runs-dir runs --run-id lates
 
 Usage:
 - Select a run in the sidebar (defaults to the latest).
-- Overview: metrics and a filterable instances table; pick an instance to view.
-- Instance Detail: see current state and a rich evidence timeline; jump to review.
+- Portfolio: list of all instances with Health, Owner, Process, Status, Step, Progress, Last updated, Confidence; use filters; click “View” to open detail.
+- Process Grid: pick a canonical process and see step columns with symbols (✅ ⏸️ ⚠️ · ?); filters; click “View” to open detail.
+- Instance Detail: see current state and health explanation; optional step summary; evidence timeline; jump to review.
 - Review: label instances (`correct | partial | incorrect | unsure`) and save `review.json`. You can copy `review_template.json` to `review.json` if it does not exist.
 - Evaluation: shows `eval_report.json` if present, otherwise a lightweight live summary. Optionally recompute a local report from `review.json` to `eval_report.local.json`.
 
@@ -278,6 +279,17 @@ Run tests:
 ```bash
 uv run pytest -q
 ```
+
+### Phase B — Deterministic post-processing (instances enrichment)
+
+Phase B extends `instances.json` deterministically (no LLM calls):
+- Adds raw vs canonical fields: `candidate_*_raw`, `canonical_*`
+- Adds `owner` (from process catalog)
+- Adds step progress: `steps_total`, `steps_done`, `steps_state`
+- Adds `health` (`on_track | at_risk | overdue | unknown`)
+- Writes coverage/stats to `run_meta.json.stats.phase_b`
+
+This runs automatically as part of Stage 3. If catalogs are missing, enrichment degrades gracefully.
 
 ### Merge per-client datasets (one-off tool)
 

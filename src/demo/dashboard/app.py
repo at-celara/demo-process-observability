@@ -8,9 +8,12 @@ from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
-from demo.dashboard.data import RunData, index_messages, list_runs, load_run
+from demo.dashboard.data import RunData, index_messages, list_runs, load_run, load_process_catalog, available_processes
 from demo.dashboard.review_store import load_or_init_review, review_map_by_instance_key, save_review
 from demo.dashboard.ui import render_evidence_timeline, render_instances_table, render_metrics, render_state_card
+from demo.dashboard.views import portfolio as view_portfolio
+from demo.dashboard.views import process_grid as view_process_grid
+from demo.dashboard.views import instance_detail as view_instance_detail
 
 
 def _parse_args(argv: List[str]) -> argparse.Namespace:
@@ -19,6 +22,18 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
     parser.add_argument("--run-id", type=str, default="latest")
     # Allow streamlit to pass unknown flags; we only parse after '--'
     return parser.parse_known_intermixed_args(argv)[0]
+
+
+def _rerun() -> None:
+    try:
+        # Streamlit >= 1.27
+        st.rerun()
+    except Exception:
+        # Fallback for older versions
+        try:
+            st.experimental_rerun()  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
 
 def _ensure_session_defaults(runs_dir: Path, initial_run_id: Optional[str]) -> None:
@@ -70,7 +85,7 @@ def _sidebar_nav() -> str:
     st.sidebar.header("Pages")
     return st.sidebar.radio(
         "Go to",
-        options=["Overview", "Instance Detail", "Review", "Evaluation"],
+        options=["Portfolio", "Process Grid", "Instance Detail", "Review", "Evaluation"],
         index=0,
     )
 
@@ -179,7 +194,7 @@ def _review_page(run: RunData) -> None:
         st.success("Saved review.json")
         # Bump version to invalidate cached run data
         st.session_state["data_version"] = int(st.session_state.get("data_version", 0)) + 1
-        st.experimental_rerun()
+        _rerun()
 
     # Summary
     labels = [r.get("human_label") for r in edited_rows if r.get("human_label")]
@@ -249,8 +264,18 @@ def main() -> None:
     if run is None:
         st.stop()
 
-    if page == "Overview":
-        _overview_page(run)
+    if page == "Portfolio":
+        sel = view_portfolio.render(run.instances.get("instances") or [])
+        if sel:
+            st.session_state["selected_instance_key"] = sel
+            _rerun()
+    elif page == "Process Grid":
+        pc = load_process_catalog(Path("config/process_catalog.yml"))
+        procs = available_processes(run.instances, pc)
+        sel = view_process_grid.render(run.instances.get("instances") or [], pc, procs)
+        if sel:
+            st.session_state["selected_instance_key"] = sel
+            _rerun()
     elif page == "Instance Detail":
         _instance_detail_page(run)
     elif page == "Review":
