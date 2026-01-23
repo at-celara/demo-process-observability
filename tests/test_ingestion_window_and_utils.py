@@ -44,6 +44,12 @@ def test_compute_window_absolute():
     assert end_dt > start_dt
 
 
+def test_compute_window_invalid_order_raises():
+    cfg = _cfg_abs("2025-02-01", "2025-01-01")
+    with pytest.raises(ValueError):
+        compute_window(cfg)
+
+
 def test_slack_thread_id_generation():
     # with thread_ts
     assert build_slack_thread_id("C123", "1700000000.000", "1699999999.000") == "C123:1700000000.000"

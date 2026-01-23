@@ -81,6 +81,11 @@ def compute_window(cfg: IngestionConfig) -> Tuple[datetime, datetime, str, str]:
         start_dt = datetime.fromisoformat(start_str + "T00:00:00+00:00")
     else:
         raise ValueError(f"Unknown window mode: {mode}")
+    # Validate chronology: end must be later than start
+    if end_dt <= start_dt:
+        raise ValueError(
+            f"Ingestion window invalid: end_date ({end_dt.date()}) must be later than start_date ({start_dt.date()})"
+        )
     start_date = start_dt.strftime("%Y-%m-%d")
     end_date = end_dt.strftime("%Y-%m-%d")
     return start_dt, end_dt, start_date, end_date
