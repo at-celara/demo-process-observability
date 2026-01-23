@@ -5,3 +5,23 @@ clients:
     aliases: ["ForwardFinancing", "Forward Financing LLC"]
   - name: "Ideal Prediction"
     aliases: ["Ideal", "IdealPrediction"]
+- name: "Chromatics"
+    aliases: []
+- name: "AFAB"
+    aliases: []
+- name: "CARPEDM"
+    aliases: []
+- name: "Portillos"
+    aliases: ["Portillo's"]
+- name: "Newton"
+    aliases: ["Newton Labs", "newton", "newtons"]
+- name: "QU"
+    aliases: []
+- name: "CFI"
+    aliases: []
+- name: "GFW"
+    aliases: []
+- name: "La Pampa"
+    aliases: []
+- name: "Kerry"
+    aliases: []

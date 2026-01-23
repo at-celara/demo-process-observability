@@ -7,6 +7,22 @@ processes:
     step_aliases:
       screening: ["phone screen", "initial screen"]
       interviews: ["onsite", "technical interview", "interview loop"]
+      offer: ["compensation negotiation", "salary negotiation", "negotiating compensation"]
+      close: ["offer accepted", "signed"]
     health:
       at_risk_after_days: 7
       overdue_after_days: 14
+  
+  deployment:
+    display_name: "Deployment"
+    owner: "Eng"
+    steps: ["plan", "deploy", "validate", "handoff"]
+    process_aliases: ["deployment", "release"]
+    health: { at_risk_after_days: 7, overdue_after_days: 14 }
+
+  delivery:
+    display_name: "Project Delivery"
+    owner: "PM"
+    steps: ["kickoff", "implementation", "handoff"]
+    process_aliases: ["project delivery", "delivery"]
+    health: { at_risk_after_days: 14, overdue_after_days: 30 }
