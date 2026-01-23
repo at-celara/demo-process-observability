@@ -5,29 +5,29 @@ clients:
     aliases: ["Forward Financing", "ForwardFinancing", "Forward Financing"]
   - name: "Ideal Prediction"
     aliases: ["Ideal Prediction", "Ideal", "IdealPrediction"]
-- name: "Chromatics"
+  - name: "Chromatics"
     aliases: ["Chromatics", "chromatics", "Chromatics.ai", "chromatics.ai", "chromatics ai", "Chromatics AI"]
-- name: "AFAB"
+  - name: "AFAB"
     aliases: ["AFAB", "afab"]
-- name: "CARPEDM"
+  - name: "CARPEDM"
     aliases: ["CARPEDM", "carpedm", "CarpeDiem"]
-- name: "Portillos"
+  - name: "Portillos"
     aliases: ["Portillos", "Portillo's", "portillos"]
-- name: "Newton"
+  - name: "Newton"
     aliases: ["Newton Labs", "newton", "newtons"]
-- name: "QU"
+  - name: "QU"
     aliases: ["qu", "Qu", "QU Beyond", "qu beyond", "QU beyond"]
-- name: "CFI"
+  - name: "CFI"
     aliases: ["CFI", "cfi"]
-- name: "GFW"
+  - name: "GFW"
     aliases: ["GFW", "gfw"]
-- name: "La Pampa"
+  - name: "La Pampa"
     aliases: ["La Pampa", "APE", "ape", "la pampa"]
-- name: "Kerry"
+  - name: "Kerry"
     aliases: ["Kerry", "kerry"]
-- name: "Podifi"
+  - name: "Podifi"
     aliases: ["Podifi", "podifi"]
-- name: "Celara Labs"
+  - name: "Celara Labs"
     aliases: ["Celara Labs", "celara labs", "celara", "Celara", "CELARA", "Tryni", "Tryni 2.0"]
-- name: "Public Relay"
-  aliases: ["Public Relay", "PublicRelay", "public relay"]
+  - name: "Public Relay"
+    aliases: ["Public Relay", "PublicRelay", "public relay"]

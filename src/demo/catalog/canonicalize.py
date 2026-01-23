@@ -71,6 +71,7 @@ def canonicalize_client(client_raw: str | None, clients_catalog: ClientsCatalog)
     if client_raw is None:
         return None
     raw_norm = norm_text(client_raw)
+    raw_tok = norm_tokenish(client_raw)
     # 1) exact match on name
     for c in clients_catalog.clients:
         if raw_norm == norm_text(c.name):
@@ -80,7 +81,7 @@ def canonicalize_client(client_raw: str | None, clients_catalog: ClientsCatalog)
         for alias in (c.aliases or []):
             if raw_norm == norm_text(alias):
                 return c.name
-    # 3) weak substring match if unique
+    # 3) weak substring match (space-collapsed) if unique
     candidates: List[str] = []
     for c in clients_catalog.clients:
         for token in [c.name] + (c.aliases or []):
@@ -91,6 +92,18 @@ def canonicalize_client(client_raw: str | None, clients_catalog: ClientsCatalog)
     candidates = _unique(candidates)
     if len(candidates) == 1:
         return candidates[0]
+    # 4) tokenized containment (remove punctuation), e.g., map 'john@acme-inc.com' -> 'Acme Inc'
+    tok_hits: List[str] = []
+    for c in clients_catalog.clients:
+        tokens = [norm_tokenish(c.name)] + [norm_tokenish(a) for a in (c.aliases or [])]
+        tokens = [t for t in tokens if t]
+        for t in tokens:
+            if t and (t in raw_tok or raw_tok in t):
+                tok_hits.append(c.name)
+                break
+    tok_hits = _unique(tok_hits)
+    if len(tok_hits) == 1:
+        return tok_hits[0]
     # No match: return cleaned original (Title Case)
     return " ".join(w.capitalize() for w in raw_norm.split())
 
