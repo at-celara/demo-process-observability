@@ -432,7 +432,11 @@ def reconcile_instances(
 
     # Coverage and drift counters
     total = len(instances)
-    cov_process = cov_client = cov_role = cov_step = cov_health = cov_evidence = 0
+    cov_process = cov_client = cov_step = cov_health = cov_evidence = 0
+    role_detected = 0
+    role_strict = 0
+    role_other = 0
+    role_missing = 0
     hiring_total = 0
     non_hiring_missing_process = 0
     non_hiring_not_hiring = 0
@@ -487,8 +491,15 @@ def reconcile_instances(
             cov_process += 1
         if canon_client:
             cov_client += 1
-        if _is_known_role(canon_role):
-            cov_role += 1
+        canon_role_norm = (canon_role or "").strip()
+        if canon_role_norm and canon_role_norm != "Unknown":
+            role_detected += 1
+            if canon_role_norm == "Other":
+                role_other += 1
+            else:
+                role_strict += 1
+        else:
+            role_missing += 1
 
         instance_key = inst.get("instance_key")
         evidence_ids = _extract_evidence_ids(inst, timeline_by_instance, max_ids, fallback_max)
@@ -661,10 +672,15 @@ def reconcile_instances(
             "incoming_total": total,
             "canonical_process_pct": _coverage_pct(cov_process, total),
             "canonical_client_pct": _coverage_pct(cov_client, total),
-            "canonical_role_pct": _coverage_pct(cov_role, total),
             "current_step_pct": _coverage_pct(cov_step, total),
             "health_known_pct": _coverage_pct(cov_health, total),
             "evidence_ids_pct": _coverage_pct(cov_evidence, total),
+            "role_metrics": {
+                "role_detected_pct": _coverage_pct(role_detected, total),
+                "role_canonical_strict_pct": _coverage_pct(role_strict, total),
+                "role_other_pct": _coverage_pct(role_other, total),
+                "role_missing_pct": _coverage_pct(role_missing, total),
+            },
         },
         "hiring_funnel": {
             "incoming_hiring_total": hiring_total,
