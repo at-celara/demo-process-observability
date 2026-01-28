@@ -437,6 +437,8 @@ def reconcile_instances(
     role_strict = 0
     role_other = 0
     role_missing = 0
+    canonical_step_present = 0
+    step_match_failures = Counter()
     hiring_total = 0
     non_hiring_missing_process = 0
     non_hiring_not_hiring = 0
@@ -515,6 +517,15 @@ def reconcile_instances(
         current_step_id = derive_current_step_id(inst, definition_pid, definition)
         if current_step_id:
             cov_step += 1
+
+        canonical_step_id = inst.get("canonical_current_step_id")
+        if canonical_step_id is not None:
+            canonical_step_present += 1
+        match_type = inst.get("canonical_current_step_match_type")
+        if match_type == "none":
+            raw_step = (inst.get("state") or {}).get("step")
+            if raw_step:
+                step_match_failures[str(raw_step)] += 1
 
         if canon_process in hiring_keys:
             hiring_total += 1
@@ -675,6 +686,7 @@ def reconcile_instances(
             "current_step_pct": _coverage_pct(cov_step, total),
             "health_known_pct": _coverage_pct(cov_health, total),
             "evidence_ids_pct": _coverage_pct(cov_evidence, total),
+            "canonical_current_step_id_pct": _coverage_pct(canonical_step_present, total),
             "role_metrics": {
                 "role_detected_pct": _coverage_pct(role_detected, total),
                 "role_canonical_strict_pct": _coverage_pct(role_strict, total),
@@ -713,6 +725,7 @@ def reconcile_instances(
         "candidate_role_raw": top(drift_role),
         "candidate_process_raw": top(drift_process),
         "raw_steps_unmatched": top(drift_step),
+        "canonical_step_match_failures": top(step_match_failures),
     }
 
     return workflows, coverage_report, reconciliation_report, drift_report

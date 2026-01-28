@@ -50,6 +50,12 @@ def _render_kpis(coverage: Dict[str, Any]) -> None:
     cols[2].metric("Health known", _metric_value(global_cov.get("health_known_pct")))
     cols[3].metric("Evidence ids", _metric_value(global_cov.get("evidence_ids_pct")))
 
+    cols = st.columns(4)
+    cols[0].metric(
+        "Canonical step ID",
+        _metric_value(global_cov.get("canonical_current_step_id_pct")),
+    )
+
     match_counts = hiring.get("match_counts") or {}
     if match_counts:
         st.write({"match_counts": match_counts})
@@ -60,15 +66,18 @@ def _render_drift(drift: Dict[str, Any]) -> None:
     raw_steps = drift.get("raw_steps_unmatched") or []
     raw_roles = drift.get("candidate_role_raw") or []
     raw_procs = drift.get("candidate_process_raw") or []
+    step_failures = drift.get("canonical_step_match_failures") or []
 
-    cols = st.columns(3)
+    cols = st.columns(4)
     cols[0].caption("Raw steps (unmatched)")
     cols[1].caption("Raw roles (unmapped)")
     cols[2].caption("Raw processes (unmapped)")
+    cols[3].caption("Step match failures")
 
     cols[0].dataframe(pd.DataFrame(raw_steps), hide_index=True, use_container_width=True)
     cols[1].dataframe(pd.DataFrame(raw_roles), hide_index=True, use_container_width=True)
     cols[2].dataframe(pd.DataFrame(raw_procs), hide_index=True, use_container_width=True)
+    cols[3].dataframe(pd.DataFrame(step_failures), hide_index=True, use_container_width=True)
 
 
 def render(run_id: str, run_dir: Path) -> None:

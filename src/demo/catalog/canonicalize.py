@@ -125,36 +125,65 @@ def canonicalize_role(role_raw: str | None, roles_catalog: RolesCatalog) -> str:
     return "Other"
 
 
-def match_step(step_raw: str | None, canonical_process: str | None, process_catalog: ProcessCatalog) -> str | None:
+def match_step(
+    step_raw: str | None,
+    canonical_process: str | None,
+    process_catalog: ProcessCatalog,
+    return_details: bool = False,
+) -> str | None | Dict[str, float | str | None]:
+    """
+    Match a raw step string to a canonical step.
+
+    When return_details=False (default), returns step_id or None (backward-compatible).
+    When return_details=True, returns:
+      { "step_id": str|None, "match_type": "exact|alias|fuzzy|none", "score": float }
+    """
     if not step_raw or not canonical_process:
-        return None
+        result = {"step_id": None, "match_type": "none", "score": 0.0}
+        return result if return_details else None
     if canonical_process not in process_catalog.processes:
-        return None
+        result = {"step_id": None, "match_type": "none", "score": 0.0}
+        return result if return_details else None
     spec = process_catalog.processes[canonical_process]
     step_n = norm_text(step_raw)
+    if not step_n:
+        result = {"step_id": None, "match_type": "none", "score": 0.0}
+        return result if return_details else None
     # 1) exact match on steps
     for s in spec.steps:
         if step_n == norm_text(s):
-            return s
+            result = {"step_id": s, "match_type": "exact", "score": 1.0}
+            return result if return_details else s
     # 2) exact match on step_aliases
     for canon_step, aliases in (spec.step_aliases or {}).items():
         for alias in aliases:
             if step_n == norm_text(alias):
-                return canon_step
+                result = {"step_id": canon_step, "match_type": "alias", "score": 1.0}
+                return result if return_details else canon_step
     # 3) substring unique
     candidates: List[str] = []
+    candidate_scores: Dict[str, float] = {}
     for s in spec.steps:
         sn = norm_text(s)
         # Only match when the full step name appears in the raw text (not the other way around)
         if sn in step_n:
             candidates.append(s)
+            candidate_scores[s] = len(sn) / max(len(step_n), 1)
     for canon_step, aliases in (spec.step_aliases or {}).items():
         for alias in aliases:
             an = norm_text(alias)
             # Only match when the full alias appears in the raw text (not the other way around)
             if an in step_n:
                 candidates.append(canon_step)
+                candidate_scores[canon_step] = max(
+                    candidate_scores.get(canon_step, 0.0),
+                    len(an) / max(len(step_n), 1),
+                )
     candidates = _unique(candidates)
     if len(candidates) == 1:
-        return candidates[0]
-    return None
+        step_id = candidates[0]
+        score = max(0.01, min(1.0, float(candidate_scores.get(step_id, 0.5))))
+        result = {"step_id": step_id, "match_type": "fuzzy", "score": score}
+        return result if return_details else step_id
+    result = {"step_id": None, "match_type": "none", "score": 0.0}
+    return result if return_details else None

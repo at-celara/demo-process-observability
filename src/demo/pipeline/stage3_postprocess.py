@@ -82,15 +82,23 @@ def _compute_steps(
         instance["steps_total"] = None
         instance["steps_done"] = None
         instance["steps_state"] = None
+        instance["canonical_current_step_id"] = None
+        instance["canonical_current_step_match_type"] = "none"
+        instance["canonical_current_step_match_score"] = 0.0
         return
     spec = process_catalog.processes[canon_process]
     steps = list(spec.steps or [])
     steps_state: Dict[str, str] = {}
-    matched = match_step(
+    match = match_step(
         ((instance.get("state") or {}).get("step")),
         canon_process,
         process_catalog,
+        return_details=True,
     )
+    instance["canonical_current_step_id"] = match.get("step_id")
+    instance["canonical_current_step_match_type"] = match.get("match_type")
+    instance["canonical_current_step_match_score"] = match.get("score")
+    matched = match.get("step_id")
     if matched is None:
         for s in steps:
             steps_state[s] = "unknown"
