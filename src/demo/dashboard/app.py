@@ -14,6 +14,8 @@ from demo.dashboard.ui import render_evidence_timeline, render_instances_table, 
 from demo.dashboard.views import portfolio as view_portfolio
 from demo.dashboard.views import process_grid as view_process_grid
 from demo.dashboard.views import instance_detail as view_instance_detail
+from demo.dashboard.views import run_summary as view_run_summary
+from demo.dashboard.views import workflow_store as view_workflow_store
 
 
 def _parse_args(argv: List[str]) -> argparse.Namespace:
@@ -47,6 +49,12 @@ def _ensure_session_defaults(runs_dir: Path, initial_run_id: Optional[str]) -> N
             st.session_state["selected_run_id"] = available_runs[0] if available_runs else None
     if "selected_instance_key" not in st.session_state:
         st.session_state["selected_instance_key"] = None
+    if "selected_view" not in st.session_state:
+        st.session_state["selected_view"] = "Portfolio"
+    if "selected_process" not in st.session_state:
+        st.session_state["selected_process"] = None
+    if "selected_workflow_id" not in st.session_state:
+        st.session_state["selected_workflow_id"] = None
 
 
 def _load_selected_run(runs_dir: Path) -> Optional[RunData]:
@@ -85,8 +93,17 @@ def _sidebar_nav() -> str:
     st.sidebar.header("Pages")
     return st.sidebar.radio(
         "Go to",
-        options=["Portfolio", "Process Grid", "Instance Detail", "Review", "Evaluation"],
+        options=[
+            "Portfolio",
+            "Process Grid",
+            "Instance Detail",
+            "Review",
+            "Evaluation",
+            "Run Summary",
+            "Workflow Store",
+        ],
         index=0,
+        key="selected_view",
     )
 
 
@@ -282,6 +299,10 @@ def main() -> None:
         _review_page(run)
     elif page == "Evaluation":
         _evaluation_page(run)
+    elif page == "Run Summary":
+        view_run_summary.render(run.run_id, run.run_dir)
+    elif page == "Workflow Store":
+        view_workflow_store.render()
     else:
         st.write("Unknown page.")
 
