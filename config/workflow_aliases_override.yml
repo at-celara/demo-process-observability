@@ -1,0 +1,118 @@
+schema_version: "1.0"
+processes:
+  recruiting:
+    process_aliases:
+      - "hiring"
+      - "recruitment"
+      - "recruiting pipeline"
+
+    step_aliases:
+      role-details:
+        - "Define role scope / search parameters"
+        - "Define search scope for role"
+        - "Drafting job description"
+        - "job description"
+        - "JD"
+        - "Define search scope / role expansion"
+        - "candidate intake / search"
+        - "role understanding/assessment"
+        - "Confirm role scope / search expansion"
+
+      msa-signature:
+        - "MSA signed"
+        - "msa signature"
+        - "agreement signed"
+        - "contract signed"
+
+      internal-kickoff:
+        - "internal kickoff"
+        - "handoff / introduction"
+        - "handoff"
+        - "introduction"
+
+      external-kickoff:
+        - "external kickoff"
+        - "kickoff between client and HR"
+        - "kick off with client"
+
+      lever:
+        - "lever"
+        - "Lever job position created"
+        - "job posted"
+        - "job position created"
+
+      referral:
+        - "referral"
+        - "referrals"
+        - "Sourcing/referrals requested"
+        - "sourcing/referrals requested"
+
+      linkedin:
+        - "linkedin"
+        - "LinkedIn outreach"
+
+      external-recruiters:
+        - "external recruiters"
+        - "External recruiters outreach"
+
+      candidate-submission:
+        - "candidate submission"
+        - "candidate cv sent"
+        - "CV shared"
+        - "resume shared"
+        - "send candidate CV"
+
+      client-profile-feedback:
+        - "client review/feedback on candidate CV and next steps"
+        - "client feedback"
+        - "profile feedback"
+        - "awaiting feedback"
+        - "Client review / feedback and next-step decision"
+        - "candidate selection"
+
+      interview-scheduling:
+        - "interview scheduling"
+        - "interview scheduled/confirmed"
+        - "interview scheduled"
+        - "interview_scheduling_request"
+        - "invite confirmed"
+        - "agenda"
+        - "agendada"
+        - "reprogramar"
+        - "reschedule"
+        - "awaiting candidate responses"
+        - "awaiting candidate response"
+        - "waiting for candidate"
+        - "did not reply"
+        - "no news from"
+        - "scheduling_interview_request"
+        - "tech screen decision/scheduling"
+        - "HR interview coordination and challenge resolution"
+        - "Client search on hold (awaiting reopening to proceed to interview)"
+        - "HR interview coordination / challenge resolution"
+        - "tech screen decision"
+
+      client-interview-feedback:
+        - "post-interview feedback"
+        - "post-interview feedback shared"
+        - "interview feedback"
+        - "feedback shared"
+        - "candidate rejected / not moving forward"
+
+      offer-letter:
+        - "offer letter"
+        - "offer sent"
+        - "offer paperwork pending"
+        - "paperwork pending"
+
+      background-check:
+        - "background check"
+
+      candidate-accepts-offer:
+        - "offer accepted"
+        - "candidate hired"
+        - "start date scheduled"
+
+      send-report:
+        - "weekly report"
+        - "report sent"

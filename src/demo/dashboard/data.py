@@ -12,7 +12,7 @@ except Exception:  # streamlit not available in some contexts (tests)
     st = None  # type: ignore
 
 from ..utils.json_utils import read_jsonl
-from ..catalog.loaders import load_process_catalog as _load_process_catalog_file
+from ..catalog.loader import load_unified_catalog
 
 
 def _cache_data(func):
@@ -188,7 +188,8 @@ def index_messages(normalized_jsonl_path: Path) -> Dict[str, Dict[str, Any]]:
 @_cache_data
 def load_process_catalog(path: Path):
     try:
-        return _load_process_catalog_file(Path(path))
+        workflow_def = Path("config/workflow_definition.yaml")
+        return load_unified_catalog(workflow_def, Path(path))
     except Exception:
         return None
 

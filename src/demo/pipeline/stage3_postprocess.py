@@ -4,11 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..catalog.loaders import (
-    load_clients_catalog,
-    load_process_catalog,
-    load_roles_catalog,
-)
+from ..catalog.loader import compiled_catalog_debug, load_unified_catalog
+from ..catalog.loaders import load_clients_catalog, load_roles_catalog
 from ..catalog.canonicalize import (
     canonicalize_client,
     canonicalize_process,
@@ -85,6 +82,7 @@ def _compute_steps(
         instance["canonical_current_step_id"] = None
         instance["canonical_current_step_match_type"] = "none"
         instance["canonical_current_step_match_score"] = 0.0
+        instance["canonical_current_step_matched_alias"] = None
         return
     spec = process_catalog.processes[canon_process]
     steps = list(spec.steps or [])
@@ -98,6 +96,7 @@ def _compute_steps(
     instance["canonical_current_step_id"] = match.get("step_id")
     instance["canonical_current_step_match_type"] = match.get("match_type")
     instance["canonical_current_step_match_score"] = match.get("score")
+    instance["canonical_current_step_matched_alias"] = match.get("matched_alias")
     matched = match.get("step_id")
     if matched is None:
         for s in steps:

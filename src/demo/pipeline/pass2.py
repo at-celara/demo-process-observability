@@ -13,7 +13,8 @@ from ..llm.client import OpenAIClient, LLMClientError
 from ..llm.types import Pass1Event
 from ..utils.json_utils import read_jsonl, write_json
 from .stage3_postprocess import enrich_instances
-from ..catalog.loaders import load_process_catalog, load_clients_catalog, load_roles_catalog
+from ..catalog.loader import compiled_catalog_debug, load_unified_catalog
+from ..catalog.loaders import load_clients_catalog, load_roles_catalog
 from datetime import datetime, timezone
 
 console = Console()
@@ -49,9 +50,9 @@ def canonicalize_process(process: Optional[str]) -> Optional[str]:
         return None
     # Synonym maps
     if cleaned in {"recruiting", "hiring"}:
-        return "hiring"
+        return "recruiting"
     if "recruiting pipeline" in cleaned or "ai search" in cleaned or "ai searching" in cleaned:
-        return "hiring"
+        return "recruiting"
     if cleaned in {"software delivery", "delivery"}:
         return "delivery"
     if cleaned in {"operations", "ops"}:
@@ -352,8 +353,26 @@ def run_stage3(run_dir: Path, cfg: Dict[str, Any]) -> Stage3Result:
     )
 
     # Phase B post-processing (deterministic enrichment)
+    catalog_cfg = cfg.get("catalog", {})
+    workflow_def_path = catalog_cfg.get("workflow_definition_path", "config/workflow_definition.yaml")
+    process_catalog_path = catalog_cfg.get("process_catalog_path", "config/process_catalog.yml")
+    override_path = catalog_cfg.get("override_path")
     try:
-        process_catalog = load_process_catalog(Path("config/process_catalog.yml"))
+        process_catalog = load_unified_catalog(
+            workflow_def_path,
+            process_catalog_path,
+            override_path=override_path,
+        )
+        try:
+            debug = compiled_catalog_debug(
+                process_catalog,
+                workflow_def_path,
+                process_catalog_path,
+                override_path=override_path,
+            )
+            write_json(run_dir / "compiled_process_catalog.json", debug)
+        except Exception:
+            pass
     except Exception:
         process_catalog = None
     try:

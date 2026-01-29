@@ -70,6 +70,11 @@ stage3:
     labels:
       allowed: ["correct", "partial", "incorrect", "unsure"]
 
+catalog:
+  workflow_definition_path: "config/workflow_definition.yaml"
+  process_catalog_path: "config/process_catalog.yml"
+  override_path: "config/workflow_aliases_override.yml"
+
 reconciliation:
   enabled: true
 
@@ -78,8 +83,8 @@ reconciliation:
     snapshot_name: workflow_store.snapshot.json
 
   scope:
-    hiring_only: true
-    hiring_process_keys: ["recruiting", "hiring"]
+    recruiting_only: true
+    recruiting_process_keys: ["recruiting"]
 
   reconcile:
     match:

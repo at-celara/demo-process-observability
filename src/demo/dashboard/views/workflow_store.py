@@ -85,6 +85,9 @@ def render() -> None:
         return
     assert store is not None
     workflows = store.get("workflows") or []
+    for wf in workflows:
+        if wf.get("process_id") == "hiring":
+            wf["process_id"] = "recruiting"
     if not workflows:
         st.warning("Workflow store is empty.")
         return
@@ -93,7 +96,7 @@ def render() -> None:
 
     with st.expander("Filters", expanded=True):
         processes = sorted([p for p in df["process_id"].dropna().astype(str).unique().tolist() if p])
-        default_proc = "hiring" if "hiring" in processes else None
+        default_proc = "recruiting" if "recruiting" in processes else None
         selected_process = st.selectbox(
             "Process",
             options=[""] + processes,

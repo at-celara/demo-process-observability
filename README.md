@@ -133,7 +133,7 @@ uv run demo stage3 --run-id <run_id>
 
 ### Reconciliation (post-Stage 3)
 
-Reconciliation runs automatically after Stage 3 and writes a persistent, UI-facing workflow store. It performs hiring-only reconciliation by default, infers steps/phases from the workflow definition, and emits coverage/reconciliation/drift reports.
+Reconciliation runs automatically after Stage 3 and writes a persistent, UI-facing workflow store. It performs recruiting-only reconciliation by default, infers steps/phases from the workflow definition, and emits coverage/reconciliation/drift reports.
 
 Inputs:
 - `runs/<run_id>/instances.json`
@@ -217,14 +217,18 @@ stage3:
     review_filename: review.json
     labels:
       allowed: ["correct", "partial", "incorrect", "unsure"]
+catalog:
+  workflow_definition_path: "config/workflow_definition.yaml"
+  process_catalog_path: "config/process_catalog.yml"
+  override_path: "config/workflow_aliases_override.yml"
 reconciliation:
   enabled: true
   store:
     persistent_path: data/workflow_store.json
     snapshot_name: workflow_store.snapshot.json
   scope:
-    hiring_only: true
-    hiring_process_keys: ["recruiting", "hiring"]
+    recruiting_only: true
+    recruiting_process_keys: ["recruiting"]
   reconcile:
     match:
       method: key_then_fuzzy
@@ -307,7 +311,7 @@ cc = load_clients_catalog(Path("config/clients.yml"))
 rc = load_roles_catalog(Path("config/roles.yml"))
 
 # Process
-assert canonicalize_process("Recruiting", pc) == "hiring"
+assert canonicalize_process("Recruiting", pc) == "recruiting"
 
 # Client
 assert canonicalize_client("Altum.ai", cc) == "Altum"
@@ -316,7 +320,7 @@ assert canonicalize_client("Altum.ai", cc) == "Altum"
 assert canonicalize_role("ML Engineer", rc) == "AI Engineer"
 
 # Step (within a process)
-assert match_step("phone screen", "hiring", pc) == "screening"
+assert match_step("Role Details", "recruiting", pc) == "role-details"
 ```
 
 Notes:

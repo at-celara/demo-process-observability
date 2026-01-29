@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from demo.catalog.loaders import load_clients_catalog, load_process_catalog, load_roles_catalog
+from demo.catalog.loader import load_unified_catalog
+from demo.catalog.loaders import load_clients_catalog, load_roles_catalog
 from demo.pipeline.stage3_postprocess import enrich_instances
 
 
@@ -12,7 +13,10 @@ def _now():
 
 
 def test_phase_b_canonical_and_owner():
-    pc = load_process_catalog(Path("tests/fixtures/process_catalog.valid.yml"))
+    pc = load_unified_catalog(
+        Path("config/workflow_definition.yaml"),
+        Path("tests/fixtures/process_catalog.valid.yml"),
+    )
     cc = load_clients_catalog(Path("tests/fixtures/clients.valid.yml"))
     rc = load_roles_catalog(Path("tests/fixtures/roles.valid.yml"))
     inst = [
@@ -29,7 +33,7 @@ def test_phase_b_canonical_and_owner():
     e = enriched[0]
     assert e["candidate_client_raw"] == "Altum.ai"
     assert e["canonical_client"] == "Altum"
-    assert e["canonical_process"] == "hiring"
+    assert e["canonical_process"] == "recruiting"
     assert e["canonical_role"] == "AI Engineer"
-    assert e["owner"] == "HR"
+    assert e["owner"] is None
     assert "coverage" in phase_b and "counts" in phase_b

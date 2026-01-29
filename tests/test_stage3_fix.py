@@ -19,11 +19,11 @@ def test_event_timestamp_priority():
 
 
 def test_canonicalize_process_synonyms():
-    assert canonicalize_process("Recruiting") == "hiring"
-    assert canonicalize_process("hiring") == "hiring"
-    assert canonicalize_process("AI searching") == "hiring"
-    assert canonicalize_process("ai search") == "hiring"
-    assert canonicalize_process("recruiting   pipeline") == "hiring"
+    assert canonicalize_process("Recruiting") == "recruiting"
+    assert canonicalize_process("hiring") == "recruiting"
+    assert canonicalize_process("AI searching") == "recruiting"
+    assert canonicalize_process("ai search") == "recruiting"
+    assert canonicalize_process("recruiting   pipeline") == "recruiting"
     assert canonicalize_process("software delivery") == "delivery"
     assert canonicalize_process("ops") == "ops"
     assert canonicalize_process("Operations") == "ops"

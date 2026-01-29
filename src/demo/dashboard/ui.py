@@ -151,13 +151,13 @@ def render_evidence_timeline(
 def format_instance_name(instance: Dict[str, Any]) -> str:
     """
     Build a compact name for display. Include role only when the canonical process
-    is 'hiring' and the role is known; otherwise show just the client.
+    is 'recruiting' and the role is known; otherwise show just the client.
     """
     canon_proc = (instance.get("canonical_process") or "").lower() if isinstance(instance.get("canonical_process"), str) else ""
     client = (instance.get("canonical_client") or instance.get("candidate_client") or "").trim() if False else None
     client = (instance.get("canonical_client") or instance.get("candidate_client") or "").strip()
     role = (instance.get("canonical_role") or "").strip()  # prefer canonical role; may be empty/unknown
-    if canon_proc == "hiring" and role and role.lower() != "unknown":
+    if canon_proc == "recruiting" and role and role.lower() != "unknown":
         base = f"{role} – {client}".strip(" –")
     else:
         base = client or "—"

@@ -4,7 +4,9 @@ import re
 import string
 from typing import Dict, List, Optional, Tuple
 
-from .models import ClientsCatalog, ProcessCatalog, RolesCatalog
+from .models import ClientsCatalog, RolesCatalog
+from .normalize import normalize_text
+from .types import ProcessCatalog
 
 
 _SPACE_RE = re.compile(r"\s+")
@@ -39,27 +41,28 @@ def _unique(values: List[str]) -> List[str]:
 def canonicalize_process(process_raw: str | None, process_catalog: ProcessCatalog) -> str | None:
     if not process_raw:
         return None
-    raw_norm = norm_text(process_raw)
+    raw_norm = normalize_text(process_raw)
+    if not raw_norm:
+        return None
     # 1) exact match on process key
-    if raw_norm in (k.lower() for k in process_catalog.processes.keys()):
-        for k in process_catalog.processes.keys():
-            if raw_norm == k.lower():
-                return k
+    for k in process_catalog.processes.keys():
+        if raw_norm == normalize_text(k):
+            return k
     # 2) exact match on display_name
     for k, spec in process_catalog.processes.items():
-        if raw_norm == norm_text(spec.display_name):
+        if raw_norm == normalize_text(spec.display_name):
             return k
     # 3) exact match on any process_aliases
     for k, spec in process_catalog.processes.items():
         for alias in (spec.process_aliases or []):
-            if raw_norm == norm_text(alias):
+            if raw_norm == normalize_text(alias):
                 return k
     # 4) substring match on aliases (unambiguous)
     candidates: List[str] = []
     for k, spec in process_catalog.processes.items():
         for alias in (spec.process_aliases or []):
-            an = norm_text(alias)
-            if an in raw_norm or raw_norm in an:
+            an = normalize_text(alias)
+            if an and (an in raw_norm or raw_norm in an):
                 candidates.append(k)
     candidates = _unique(candidates)
     if len(candidates) == 1:
@@ -145,33 +148,40 @@ def match_step(
         result = {"step_id": None, "match_type": "none", "score": 0.0}
         return result if return_details else None
     spec = process_catalog.processes[canonical_process]
-    step_n = norm_text(step_raw)
+    step_n = normalize_text(step_raw)
     if not step_n:
-        result = {"step_id": None, "match_type": "none", "score": 0.0}
+        result = {"step_id": None, "match_type": "none", "score": 0.0, "matched_alias": None}
         return result if return_details else None
     # 1) exact match on steps
     for s in spec.steps:
-        if step_n == norm_text(s):
-            result = {"step_id": s, "match_type": "exact", "score": 1.0}
+        if norm_text(step_raw) == norm_text(s):
+            result = {"step_id": s, "match_type": "exact", "score": 1.0, "matched_alias": None}
             return result if return_details else s
     # 2) exact match on step_aliases
     for canon_step, aliases in (spec.step_aliases or {}).items():
         for alias in aliases:
-            if step_n == norm_text(alias):
-                result = {"step_id": canon_step, "match_type": "alias", "score": 1.0}
+            if step_n == normalize_text(alias):
+                result = {
+                    "step_id": canon_step,
+                    "match_type": "alias",
+                    "score": 1.0,
+                    "matched_alias": alias,
+                }
                 return result if return_details else canon_step
     # 3) substring unique
     candidates: List[str] = []
     candidate_scores: Dict[str, float] = {}
+    candidate_alias: Dict[str, str] = {}
     for s in spec.steps:
-        sn = norm_text(s)
+        sn = normalize_text(s)
         # Only match when the full step name appears in the raw text (not the other way around)
         if sn in step_n:
             candidates.append(s)
             candidate_scores[s] = len(sn) / max(len(step_n), 1)
+            candidate_alias[s] = s
     for canon_step, aliases in (spec.step_aliases or {}).items():
         for alias in aliases:
-            an = norm_text(alias)
+            an = normalize_text(alias)
             # Only match when the full alias appears in the raw text (not the other way around)
             if an in step_n:
                 candidates.append(canon_step)
@@ -179,11 +189,17 @@ def match_step(
                     candidate_scores.get(canon_step, 0.0),
                     len(an) / max(len(step_n), 1),
                 )
+                candidate_alias[canon_step] = alias
     candidates = _unique(candidates)
     if len(candidates) == 1:
         step_id = candidates[0]
         score = max(0.01, min(1.0, float(candidate_scores.get(step_id, 0.5))))
-        result = {"step_id": step_id, "match_type": "fuzzy", "score": score}
+        result = {
+            "step_id": step_id,
+            "match_type": "fuzzy",
+            "score": score,
+            "matched_alias": candidate_alias.get(step_id),
+        }
         return result if return_details else step_id
-    result = {"step_id": None, "match_type": "none", "score": 0.0}
+    result = {"step_id": None, "match_type": "none", "score": 0.0, "matched_alias": None}
     return result if return_details else None

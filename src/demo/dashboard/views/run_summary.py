@@ -28,14 +28,17 @@ def _get_nested(d: Dict[str, Any], keys: list[str]) -> Optional[Any]:
 
 def _render_kpis(coverage: Dict[str, Any]) -> None:
     global_cov = coverage.get("global") or {}
-    funnel = coverage.get("hiring_funnel") or {}
-    hiring = coverage.get("hiring_reconciliation") or {}
+    funnel = coverage.get("recruiting_funnel") or coverage.get("hiring_funnel") or {}
+    recruiting = coverage.get("recruiting_reconciliation") or coverage.get("hiring_reconciliation") or {}
     role_metrics = global_cov.get("role_metrics") or {}
 
     cols = st.columns(4)
     cols[0].metric("Incoming total", str(global_cov.get("incoming_total", "n/a")))
-    cols[1].metric("Hiring total", str(funnel.get("incoming_hiring_total", "n/a")))
-    cols[2].metric("Workflows written", str(hiring.get("hiring_written_total", "n/a")))
+    cols[1].metric("Recruiting total", str(funnel.get("incoming_recruiting_total", funnel.get("incoming_hiring_total", "n/a"))))
+    cols[2].metric(
+        "Workflows written",
+        str(recruiting.get("recruiting_written_total", recruiting.get("hiring_written_total", "n/a"))),
+    )
     cols[3].metric("Role detected", _metric_value(role_metrics.get("role_detected_pct")))
 
     cols = st.columns(4)
@@ -56,7 +59,7 @@ def _render_kpis(coverage: Dict[str, Any]) -> None:
         _metric_value(global_cov.get("canonical_current_step_id_pct")),
     )
 
-    match_counts = hiring.get("match_counts") or {}
+    match_counts = recruiting.get("match_counts") or {}
     if match_counts:
         st.write({"match_counts": match_counts})
 

@@ -14,7 +14,7 @@ def _definition():
         {
             "processes": [
                 {
-                    "id": "hiring",
+                    "id": "recruiting",
                     "name": "Hiring",
                     "phases": [
                         {
@@ -40,8 +40,8 @@ def _definition():
 
 
 def test_workflow_id_stability():
-    wid1 = generate_workflow_id("hiring", "Altum", "AI Engineer", "inst-1", "Altum", "AI Engineer")
-    wid2 = generate_workflow_id("hiring", "Altum", "AI Engineer", "inst-1", "Altum", "AI Engineer")
+    wid1 = generate_workflow_id("recruiting", "Altum", "AI Engineer", "inst-1", "Altum", "AI Engineer")
+    wid2 = generate_workflow_id("recruiting", "Altum", "AI Engineer", "inst-1", "Altum", "AI Engineer")
     assert wid1 == wid2
 
     wid3 = generate_workflow_id(None, None, None, "inst-1", "Altum", "AI Engineer")
@@ -51,12 +51,12 @@ def test_workflow_id_stability():
 
 def test_phase_derivation():
     definition = _definition()
-    assert infer_phase_id("hiring", "s3", definition) == "phase-2"
+    assert infer_phase_id("recruiting", "s3", definition) == "phase-2"
 
 
 def test_positional_inference():
     definition = _definition()
-    steps = infer_steps_from_position("hiring", definition, "s2", "blocked", "completed_inferred")
+    steps = infer_steps_from_position("recruiting", definition, "s2", "blocked", "completed_inferred")
     assert steps[0]["status"] == "completed_inferred"
     assert steps[1]["status"] == "blocked"
     assert steps[2]["status"] == "not_started"
@@ -64,7 +64,7 @@ def test_positional_inference():
 
 def test_reconciliation_update_merges_evidence_and_overwrites_steps():
     definition = _definition()
-    cfg = {"reconciliation": {"scope": {"hiring_only": True, "hiring_process_keys": ["hiring"]}}}
+    cfg = {"reconciliation": {"scope": {"recruiting_only": True, "recruiting_process_keys": ["recruiting"]}}}
     instances = [
         {
             "instance_key": "thread:1",
@@ -73,7 +73,7 @@ def test_reconciliation_update_merges_evidence_and_overwrites_steps():
             "candidate_process_raw": "Hiring",
             "canonical_client": "Altum",
             "canonical_role": "AI Engineer",
-            "canonical_process": "hiring",
+            "canonical_process": "recruiting",
             "state": {
                 "status": "in_progress",
                 "step": "Step 2",
@@ -87,7 +87,7 @@ def test_reconciliation_update_merges_evidence_and_overwrites_steps():
     store = [
         {
             "workflow_id": "wf_123",
-            "process_id": "hiring",
+            "process_id": "recruiting",
             "client": "Altum",
             "role": "AI Engineer",
             "steps": [{"id": "s1", "status": "completed"}],
@@ -101,9 +101,9 @@ def test_reconciliation_update_merges_evidence_and_overwrites_steps():
     assert updated["observability"]["last_updated_at"] == "2026-01-02T00:00:00Z"
 
 
-def test_hiring_only_scope_filters_store_but_counts_global():
+def test_recruiting_only_scope_filters_store_but_counts_global():
     definition = _definition()
-    cfg = {"reconciliation": {"scope": {"hiring_only": True, "hiring_process_keys": ["hiring"]}}}
+    cfg = {"reconciliation": {"scope": {"recruiting_only": True, "recruiting_process_keys": ["recruiting"]}}}
     instances = [
         {
             "instance_key": "thread:1",
@@ -112,7 +112,7 @@ def test_hiring_only_scope_filters_store_but_counts_global():
             "candidate_process_raw": "Hiring",
             "canonical_client": "Altum",
             "canonical_role": "AI Engineer",
-            "canonical_process": "hiring",
+            "canonical_process": "recruiting",
             "state": {"status": "in_progress", "step": "Step 1"},
             "health": "on_track",
             "evidence": [],
@@ -133,4 +133,4 @@ def test_hiring_only_scope_filters_store_but_counts_global():
     workflows, coverage, _, _ = reconcile_instances(instances, {}, [], definition, cfg)
     assert len(workflows) == 1
     assert coverage["global"]["incoming_total"] == 2
-    assert coverage["hiring_funnel"]["incoming_hiring_total"] == 1
+    assert coverage["recruiting_funnel"]["incoming_recruiting_total"] == 1

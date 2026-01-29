@@ -6,9 +6,22 @@ processes:
     process_aliases: ["recruiting", "recruitment", "recruiting pipeline"]
     step_aliases:
       screening: ["phone screen", "initial screen"]
-      interviews: ["onsite", "technical interview", "interview loop","interview scheduling","scheduling interview","schedule interview","candidate response pending","post-interview feedback","interview feedback","feedback","next steps", "awaiting candidate response","awaiting candidate responses","candidate response pending","waiting for candidate","no news from","did not reply", "interview scheduled","scheduled interview","agenda","agendada","invite confirmed","confirmed invite","reprogramar","reschedule"]
-      offer: ["compensation negotiation", "salary negotiation", "negotiating compensation"]
-      close: ["offer accepted", "signed", "client decision", "decision","rejection","rejected","not moving forward","won't move forward","no van a avanzar","no avanzan","declined"]
+      interviews: ["onsite", "technical interview", "interview loop","interview scheduling","scheduling interview","schedule interview","candidate response pending","post-interview feedback","interview feedback","feedback","next steps", "awaiting candidate response","awaiting candidate responses","candidate response pending","waiting for candidate","no news from","did not reply", "interview scheduled","scheduled interview","agenda","agendada","invite confirmed","confirmed invite","reprogramar","reschedule", "interview_scheduling_request", "Client search on hold (awaiting reopening to proceed to interview)", "search on hold", "on hold", "awaiting reopening"]
+      offer: ["compensation negotiation", "salary negotiation", "negotiating compensation", "candidate selection", "candidate selected", "post-offer onboarding / next steps", "post offer onboarding", "onboarding next steps"]
+      close: ["offer accepted", "signed", "client decision", "decision","rejection","rejected","not moving forward","won't move forward","no van a avanzar","no avanzan","declined", "rejection communicated / awaiting feedback details", "awaiting feedback details"]
+      intake:
+        - "Define role scope / search parameters"
+        - "Define search scope for role"
+        - "Drafting job description and finalizing terms before scheduling kickoff call"
+        - "Gather and send prior JD and top 5 priorities"
+        - "notes/documentation shared"
+        - "handoff / introduction"
+        - "sourcing/referrals requested"
+        - "searches and candidate pipeline"
+        - "candidate pipeline"
+        - "pipeline"
+        - "referrals requested"
+        - "sourcing requested"
     health:
       at_risk_after_days: 7
       overdue_after_days: 14

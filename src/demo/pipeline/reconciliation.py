@@ -110,7 +110,7 @@ def load_workflow_definition(path: Path) -> WorkflowDefinition:
 def resolve_definition_process_id(
     canonical_process: Optional[str],
     definition: WorkflowDefinition,
-    hiring_process_keys: Iterable[str],
+    recruiting_process_keys: Iterable[str],
 ) -> Optional[str]:
     if not canonical_process:
         return None
@@ -120,9 +120,9 @@ def resolve_definition_process_id(
     for pid, proc in definition.processes_by_id.items():
         if _norm_text(pid) == canon_norm or _norm_text(proc.get("name")) == canon_norm:
             return pid
-    # If a process exists in definition that is part of hiring keys, prefer it.
+    # If a process exists in definition that is part of recruiting keys, prefer it.
     for pid in definition.processes_by_id.keys():
-        if pid in set(hiring_process_keys):
+        if pid in set(recruiting_process_keys):
             return pid
     return None
 
@@ -173,6 +173,10 @@ def derive_current_step_id(
         cand = state.get(key) or instance.get(key)
         if cand in steps:
             return cand
+
+    cand = instance.get("canonical_current_step_id")
+    if cand in steps:
+        return cand
 
     steps_state = instance.get("steps_state")
     if isinstance(steps_state, dict):
@@ -354,8 +358,10 @@ def _get_reconciliation_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
             "snapshot_name": store.get("snapshot_name", "workflow_store.snapshot.json"),
         },
         "scope": {
-            "hiring_only": bool(scope.get("hiring_only", True)),
-            "hiring_process_keys": list(scope.get("hiring_process_keys", ["recruiting", "hiring"])),
+            "recruiting_only": bool(scope.get("recruiting_only", scope.get("hiring_only", True))),
+            "recruiting_process_keys": list(
+                scope.get("recruiting_process_keys", scope.get("hiring_process_keys", ["recruiting"]))
+            ),
         },
         "reconcile": {
             "match": {
@@ -421,8 +427,8 @@ def reconcile_instances(
     cfg: Dict[str, Any],
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     settings = _get_reconciliation_config(cfg)
-    hiring_keys = settings["scope"]["hiring_process_keys"]
-    hiring_only = settings["scope"]["hiring_only"]
+    recruiting_keys = settings["scope"]["recruiting_process_keys"]
+    recruiting_only = settings["scope"]["recruiting_only"]
     exact_fields = settings["reconcile"]["match"]["exact_key_fields"]
     fuzzy_threshold = settings["reconcile"]["match"]["fuzzy_threshold"]
     max_ids = settings["reconcile"]["evidence"]["max_ids_per_instance"]
@@ -439,18 +445,18 @@ def reconcile_instances(
     role_missing = 0
     canonical_step_present = 0
     step_match_failures = Counter()
-    hiring_total = 0
-    non_hiring_missing_process = 0
-    non_hiring_not_hiring = 0
+    recruiting_total = 0
+    non_recruiting_missing_process = 0
+    non_recruiting_not_recruiting = 0
     drift_client = Counter()
     drift_role = Counter()
     drift_process = Counter()
     drift_step = Counter()
 
-    # Start from hiring-only view if configured
+    # Start from recruiting-only view if configured
     workflows = list(store_workflows or [])
-    if hiring_only:
-        workflows = [wf for wf in workflows if wf.get("process_id") in hiring_keys]
+    if recruiting_only:
+        workflows = [wf for wf in workflows if wf.get("process_id") in recruiting_keys]
 
     def workflow_exact_key(wf: Dict[str, Any]) -> Optional[Tuple[str, ...]]:
         obs = wf.get("observability") or {}
@@ -480,10 +486,10 @@ def reconcile_instances(
     ]
 
     match_counts = {"exact": 0, "fuzzy": 0, "created": 0}
-    hiring_written_total = 0
-    hiring_steps_populated = 0
-    hiring_phase_known = 0
-    hiring_evidence = 0
+    recruiting_written_total = 0
+    recruiting_steps_populated = 0
+    recruiting_phase_known = 0
+    recruiting_evidence = 0
 
     for inst in instances:
         canon_process = inst.get("canonical_process")
@@ -513,7 +519,9 @@ def reconcile_instances(
             cov_health += 1
 
         process_id = canon_process or "unknown"
-        definition_pid = resolve_definition_process_id(canon_process, definition, hiring_keys)
+        if process_id == "hiring":
+            process_id = "recruiting"
+        definition_pid = resolve_definition_process_id(canon_process, definition, recruiting_keys)
         current_step_id = derive_current_step_id(inst, definition_pid, definition)
         if current_step_id:
             cov_step += 1
@@ -527,15 +535,15 @@ def reconcile_instances(
             if raw_step:
                 step_match_failures[str(raw_step)] += 1
 
-        if canon_process in hiring_keys:
-            hiring_total += 1
+        if canon_process in recruiting_keys:
+            recruiting_total += 1
         else:
             if not canon_process:
-                non_hiring_missing_process += 1
+                non_recruiting_missing_process += 1
             else:
-                non_hiring_not_hiring += 1
+                non_recruiting_not_recruiting += 1
 
-        if hiring_only and canon_process not in hiring_keys:
+        if recruiting_only and canon_process not in recruiting_keys:
             # skip writes but still count drift and coverage
             if not canon_client and inst.get("candidate_client_raw"):
                 drift_client[inst.get("candidate_client_raw")] += 1
@@ -604,7 +612,7 @@ def reconcile_instances(
             match_score = 1.0
 
         match_counts[match_type] += 1
-        hiring_written_total += 1
+        recruiting_written_total += 1
 
         # Infer steps & phases
         steps = None
@@ -627,11 +635,11 @@ def reconcile_instances(
             )
 
         if steps:
-            hiring_steps_populated += 1
+            recruiting_steps_populated += 1
         if phase_id != "unknown":
-            hiring_phase_known += 1
+            recruiting_phase_known += 1
         if evidence_ids:
-            hiring_evidence += 1
+            recruiting_evidence += 1
 
         # Update workflow fields
         matched["process_id"] = process_id
@@ -694,25 +702,25 @@ def reconcile_instances(
                 "role_missing_pct": _coverage_pct(role_missing, total),
             },
         },
-        "hiring_funnel": {
-            "incoming_hiring_total": hiring_total,
-            "incoming_non_hiring_total": total - hiring_total,
-            "pct_hiring_among_total": _coverage_pct(hiring_total, total),
-            "pct_hiring_among_known_process": _coverage_pct(hiring_total, cov_process),
-            "missing_canonical_process": non_hiring_missing_process,
-            "canonical_process_not_hiring": non_hiring_not_hiring,
+        "recruiting_funnel": {
+            "incoming_recruiting_total": recruiting_total,
+            "incoming_non_recruiting_total": total - recruiting_total,
+            "pct_recruiting_among_total": _coverage_pct(recruiting_total, total),
+            "pct_recruiting_among_known_process": _coverage_pct(recruiting_total, cov_process),
+            "missing_canonical_process": non_recruiting_missing_process,
+            "canonical_process_not_recruiting": non_recruiting_not_recruiting,
         },
-        "hiring_reconciliation": {
-            "hiring_written_total": hiring_written_total,
+        "recruiting_reconciliation": {
+            "recruiting_written_total": recruiting_written_total,
             "match_counts": match_counts,
-            "steps_list_pct": _coverage_pct(hiring_steps_populated, hiring_written_total),
-            "phase_known_pct": _coverage_pct(hiring_phase_known, hiring_written_total),
-            "evidence_ids_pct": _coverage_pct(hiring_evidence, hiring_written_total),
+            "steps_list_pct": _coverage_pct(recruiting_steps_populated, recruiting_written_total),
+            "phase_known_pct": _coverage_pct(recruiting_phase_known, recruiting_written_total),
+            "evidence_ids_pct": _coverage_pct(recruiting_evidence, recruiting_written_total),
         },
     }
 
     reconciliation_report = {
-        "workflows_written": hiring_written_total,
+        "workflows_written": recruiting_written_total,
         "match_counts": match_counts,
         "updated_at": utc_now_iso(),
     }
@@ -780,6 +788,10 @@ def run_reconciliation(run_dir: Path, cfg: Dict[str, Any]) -> ReconciliationResu
         except Exception:
             store_obj = {"version": 1, "updated_at": utc_now_iso(), "workflows": []}
     store_workflows = store_obj.get("workflows") or []
+    # Migrate legacy process_id values in-memory
+    for wf in store_workflows:
+        if wf.get("process_id") == "hiring":
+            wf["process_id"] = "recruiting"
 
     workflows, coverage_report, reconciliation_report, drift_report = reconcile_instances(
         instances, timeline_by_instance, store_workflows, definition, cfg
